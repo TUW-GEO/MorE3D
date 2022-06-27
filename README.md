@@ -22,6 +22,23 @@ Landscape reshaping processes exert great impact on wildlife, humans and their h
 
 Eventually, the saliency is computed using the OPALS histogram etc. 
 
+#### Citing
+
+When using this code, please cite the following: 
+
+@Article{Arav.Filin2022,
+  author    = {Reuma Arav and Sagi Filin},
+  journal   = {{ISPRS} Journal of Photogrammetry and Remote Sensing},
+  title     = {A visual saliency-driven extraction framework of smoothly embedded entities in 3D point clouds of open terrain},
+  year      = {2022},
+  month     = {jun},
+  pages     = {125--140},
+  volume    = {188},
+  doi       = {10.1016/j.isprsjprs.2022.04.003},
+  publisher = {Elsevier {BV}},
+}
+
+
 ### Subsampling
 
 - DownsamplingPaper.py - runs the downsampling process using salinecy and voxel grid (the two are in the same file)
@@ -29,6 +46,9 @@ Eventually, the saliency is computed using the OPALS histogram etc.
 - downsample_compare.py - runs the comparison analysis between different types of downsampling. This file is for the downsampling paper.
 
 Files with names of datasets run the saliency for the named dataset.
+
+
+
 
 ### Dependecies
 - OPALS v.2.3.2 -- https://opals.geo.tuwien.ac.at/html/stable/index.html
