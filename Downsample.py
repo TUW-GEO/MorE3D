@@ -3,6 +3,33 @@
 @Date: January 2022
 
 Script for downsampling point cloud based on saliency and using the voxel based method (as implemented in open3d)
+
+
+=================================================================
+MIT License
+
+Copyright (c) 2022 TU Wien - Department of Geodesy and Geoinformation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+=======================================================================
+
+
 """
 from BallTreePointSet import BallTreePointSet
 import open3d as o3d
@@ -15,17 +42,15 @@ if __name__ == '__main__':
     saliency_folder = folder + '/saliency/'
     fname = 'Zeelim1.5M.txt'
     leaf_size = 40
+    zero_thresh = 1e-4
     saliency = np.loadtxt(saliency_folder + fname)
     pts = saliency[:, :3]
     btP = BallTreePointSet(pts, leaf_size=leaf_size)
 
     # check the level in the required LOD (radius)
-    # lod = [1, 2, 5, 7, 10] # Kaunertal + dead sea
-    # lod = [0.05, 0.1, 0.5, 1] # Leopards + cave
-    lod = [1.35]
+    lod = [1, 2, 5, 7, 10] # airborne datasets
+    # lod = [0.05, 0.1, 0.5, 1] # terrestrial datasets
 
-    # lod = [10]
-    # node_level = btP.getNodeLevel(smallest_node_idx)
     for LOD in lod:
         print('computing {}'.format(LOD))
 
@@ -40,7 +65,7 @@ if __name__ == '__main__':
 
         for i in smallest_nodes_idx:
             node_idx = btP.getPointsOfNode(i)
-            idx_saliency = saliency[node_idx, 3] > s_thresh
+            idx_saliency = saliency[node_idx, 3] > s_thresh and np.abs(saliency[node_idx, 3]) < zero_thresh
 
             if np.sum(idx_saliency) * 100 / idx_saliency.shape[0] > 60:
                 # keep cell as is
