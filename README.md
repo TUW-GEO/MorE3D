@@ -47,7 +47,10 @@ When using this code, please cite:
 
 Files with names of datasets run the saliency for the named dataset.
 
+#### Citing
+
 When using this code, please cite:
+
 
 @ARTICLE{Arav.etal2022,
   author={Arav, Reuma and Filin, Sagi and Pfeifer, Norbert},
@@ -67,6 +70,8 @@ When using this code, please cite:
 - levelset_func.py - the level set function that runs in the background of "run_levelsets.py". 
 
 - pcls_timeseries.ipnyb - a jupyter notebook that creates a video of the extraction if it is based on a time series (extraction through time). 
+
+#### Citing
 
 When using this code, please cite:
 
