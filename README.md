@@ -24,7 +24,7 @@ Eventually, the saliency is computed using the OPALS histogram etc.
 
 #### Citing
 
-When using this code, please cite the following: 
+When using this code, please cite: 
 
 @Article{Arav.Filin2022,
   author    = {Reuma Arav and Sagi Filin},
@@ -43,9 +43,43 @@ When using this code, please cite the following:
 
 - DownsamplingPaper.py - runs the downsampling process using salinecy and voxel grid (the two are in the same file)
 
-- downsample_compare.py - runs the comparison analysis between different types of downsampling. This file is for the downsampling paper.
+- downsample_compare.py - runs the comparison analysis between different types of downsampling. 
 
 Files with names of datasets run the saliency for the named dataset.
+
+When using this code, please cite:
+
+@ARTICLE{Arav.etal2022,
+  author={Arav, Reuma and Filin, Sagi and Pfeifer, Norbert},
+  journal={IEEE Transactions on Geoscience and Remote Sensing}, 
+  title={Content-Aware Point Cloud Simplification of Natural Scenes}, 
+  year={2022},
+  volume={60},
+  number={},
+  pages={1-12},
+  doi={10.1109/TGRS.2022.3208348}
+  }
+
+### Level set 
+
+- run_levelsets.py - runs 3D level set extraction in an input point cloud based on a chosen feature. The level set will delineate and extract the 3D shapes that their features are similar inside and outside the curve. 
+
+- levelset_func.py - the level set function that runs in the background of "run_levelsets.py". 
+
+- pcls_timeseries.ipnyb - a jupyter notebook that creates a video of the extraction if it is based on a time series (extraction through time). 
+
+When using this code, please cite:
+
+@article{Arav.etal2022b,
+author={Arav,R. and Pöppl,F. and Pfeifer,N.},
+year={2022},
+title={A POINT-BASED LEVEL-SET APPROACH FOR THE EXTRACTION OF 3D ENTITIES FROM POINT CLOUDS – APPLICATION IN GEOMORPHOLOGICAL CONTEXT},
+journal={ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences},
+volume={-2-2022},
+pages={95-102},
+isbn={21949042},
+doi={10.5194/isprs-annals-V-2-2022-95-2022}
+} 
 
 
 
