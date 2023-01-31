@@ -93,6 +93,7 @@ doi={10.5194/isprs-annals-V-2-2022-95-2022}
 ### Dependecies
 - OPALS v.2.3.2 -- https://opals.geo.tuwien.ac.at/html/stable/index.html
 - Scikit-image v.0.19.3 
+- laspy v.2.3.0
 
 ### Note
 

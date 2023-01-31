@@ -45,10 +45,11 @@ pcls.checks = True
 
 #  in_file = './datasets/schneeferner_m3c2_sel_days_aoi2_sub025.las'   
 #  field = 'm3c2_180422_120031'   
-in_file = './datasets/beach/change_timeseries_tint24_nepochs123.laz'
-#  in_file = './datasets/snowcover/change_timeseries_tint1_nepochs129_subsampled1.las'   
-fields = [f'change_{i}' for i in range(0, 123)]
-k = 5  # use epoch `n` and `n+k`
+# in_file = './datasets/beach/change_timeseries_tint24_nepochs123.laz'
+in_file = '/home/reuma/PycharmProjects/data/snowCover/change_timeseries_tint1_nepochs129_subsampled1.las'
+# fields = [f'change_{i}' for i in range(0, 123)]
+fields = ['zeros','change_55']
+k_interval = 1  # use epoch `n` and `n+k`
 
 # re-use intermediate calculations (neighbors, normals, tangents)
 reuse_intermediate = True
@@ -122,7 +123,7 @@ v_ = vars()
 v = {key: v_[key] for key in v_.keys() if 
         key[0] != '_' and isinstance(v_[key], (int, bool, str, float))}
 
-fields12 = zip(fields[:-k], fields[k:])
+fields12 = zip(fields[:-k_interval], fields[k_interval:])
 
 def process(args):
     field1, field2, parameters = args
@@ -211,8 +212,7 @@ def process(args):
 
 pool = Pool()
 
-
-for _ in zip(fields[:-k], fields[k:], [v]*len(fields)):
+for _ in zip(fields[:-k_interval], fields[k_interval:], [v]*len(fields)):
     process(_)
 
 #  pool.map(process, zip(fields, [v]*len(fields))) 
