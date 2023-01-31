@@ -1,10 +1,17 @@
+"""
+===================================================================
+                            MorE3d
+===================================================================
+A class for higher usability of the ball tree representation.
+Based on code by Zachi Shtain
+
+"""
+
 from functools import partial
 
 import numpy as np
 from numpy import nonzero, logical_and, unique, zeros, array, hstack
 from sklearn.neighbors import BallTree
-
-# from DataClasses.PointSet import PointSet
 
 
 class BallTreePointSet(object):

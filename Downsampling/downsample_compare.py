@@ -1,32 +1,25 @@
 """
+===================================================================
+                            MorE3d
+===================================================================
 @Created: Reuma Arav
 @Date: January 2022
 
 Script for comparing results of different downsampling datasets
 
-===================================================================
-MIT License
+When using this code please cite:
 
-Copyright (c) 2022 TU Wien - Department of Geodesy and Geoinformation
+@article{Arav2022content,
+  title={Content-Aware Point Cloud Simplification of Natural Scenes},
+  author={Arav, Reuma and Filin, Sagi and Pfeifer, Norbert},
+  journal={IEEE Transactions on Geoscience and Remote Sensing},
+  volume={60},
+  pages={1--12},
+  year={2022},
+  publisher={IEEE}
+}
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-==============================================================================
 """
 from sklearn.neighbors import BallTree
 
@@ -37,7 +30,8 @@ import itertools
 if __name__ == '__main__':
     folder = '../data/Zeelim/'
     saliency_folder = folder + 'saliency/'
-    fname = 'Zeelim1.5M.txt'
+    fname = 'Zeelim1.5M.txt' # these data can be found on https://doi.org/10.48436/mps0m-c9n43
+
     pts = np.loadtxt(saliency_folder + fname)
 
     leafsize = 40 # leaf size for ball tree reconstruction

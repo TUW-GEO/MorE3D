@@ -1,49 +1,41 @@
 '''
-A module to compute saliency
+===================================================================
+                            MorE3d
+===================================================================
 
-==============================================================================
-MIT License
+Functionaliries to compute saliency based on geometric properties
+-----------------------------------------------------------------
+@author: Reuma Arav
+@date: 2022
 
-Copyright (c) 2022 TU Wien - Department of Geodesy and Geoinformation
+# Dependencies
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    - OPALS v.2.5.0
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+When using this code please cite:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-====================================================================================
+@article{arav2022visual,
+  title={A visual saliency-driven extraction framework of smoothly embedded entities in 3D point clouds of open terrain},
+  author={Arav, Reuma and Filin, Sagi},
+  journal={ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume={188},
+  pages={125--140},
+  year={2022},
+  publisher={Elsevier}
+}
+
 '''
 
 from __future__ import print_function  # print function syntax as in python 3
 
 import warnings
-#from numba import jit
 import opals.AddInfo
 from opals import pyDM, Info, Histo
-from opals import View
 
 
 import datetime
 import numpy as np
 import sys
-
-# @jit(nopython=True)
-# def compute_dn_dk(neighbours, pt, pt_curvature, pt_normal, n_curvature, n_normal):
-
-#
-
 
 class Curvature_Kernel(pyDM.PointKernelEx):
     """callback object computing an user-defined attribute '_K_nonparam'"""

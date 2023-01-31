@@ -12,7 +12,6 @@ Landscape reshaping processes exert great impact on wildlife, humans and their h
 
 ### Saliency 
 
-- main.py - main running code. For now it runs the entire saliency computation process using OPALS. 
 
 - DM_saliency.py - use of pyDM to compute the saliency. Two processors are defined: 
     
@@ -39,7 +38,7 @@ When using this code, please cite:
 }
 
 
-### Subsampling
+### Downsampling
 
 - DownsamplingPaper.py - runs the downsampling process using salinecy and voxel grid (the two are in the same file)
 
@@ -86,11 +85,14 @@ isbn={21949042},
 doi={10.5194/isprs-annals-V-2-2022-95-2022}
 } 
 
+### Examples
+- run_saliency.py - main running code. For now it runs the entire saliency computation process using OPALS. 
 
 
 
 ### Dependecies
 - OPALS v.2.3.2 -- https://opals.geo.tuwien.ac.at/html/stable/index.html
+- Scikit-image v.0.19.3 
 
 ### Note
 
