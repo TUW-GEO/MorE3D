@@ -28,14 +28,14 @@ When using this code please cite:
 '''
 
 import numpy as np
-import levelsets_func as pcls
+import levelsets_func as ls
 import os
 from argparse import Namespace
 from multiprocessing import Pool
 
 # --- config / parameters ---
-pcls.verbose = False
-pcls.checks = True
+ls.verbose = False
+ls.checks = True
 
 # - multi features
 # - added feature: some kind of temporal change info
@@ -46,9 +46,9 @@ pcls.checks = True
 #  in_file = './datasets/schneeferner_m3c2_sel_days_aoi2_sub025.las'   
 #  field = 'm3c2_180422_120031'   
 # in_file = './datasets/beach/change_timeseries_tint24_nepochs123.laz'
-in_file = '/home/reuma/PycharmProjects/data/snowCover/change_timeseries_tint1_nepochs129_subsampled1.las'
+in_file = '../../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1nonan.las'
 # fields = [f'change_{i}' for i in range(0, 123)]
-fields = ['zeros','change_55']
+fields = ['zeros','change_125']
 k_interval = 1  # use epoch `n` and `n+k`
 
 # re-use intermediate calculations (neighbors, normals, tangents)
@@ -58,7 +58,7 @@ reuse_intermediate = True
 active_contour_model = 'chan_vese'
 
 # each cycle runs a number of steps then stores a result
-num_cycles = 6
+num_cycles = 12
 num_steps = 50
 
 # number of smoothing passes for zeta
@@ -98,7 +98,7 @@ if not os.path.exists(base_dir):
     os.makedirs(base_dir)
 
 # robust cues, clip at X%
-cue_clip_pc = 97.50
+cue_clip_pc = 100
 
 # initialization voxel size
 vox_size = 10
@@ -116,14 +116,12 @@ extraction_threshold = k//2
 # --- run ---
 
 print(f"reading file '{in_file}'")
-data = pcls.read_las(in_file, fields)
+data = ls.read_las(in_file, fields)
 tmp_file = os.path.join(base_dir, 'tmp.npz')
 
 v_ = vars()
 v = {key: v_[key] for key in v_.keys() if 
         key[0] != '_' and isinstance(v_[key], (int, bool, str, float))}
-
-fields12 = zip(fields[:-k_interval], fields[k_interval:])
 
 def process(args):
     field1, field2, parameters = args
@@ -141,8 +139,8 @@ def process(args):
     points = data["xyz"]
 
     zeta = np.zeros((points.shape[0], 2))
-    zeta[:, 0] = data[field1].copy()
-    zeta[:, 1] = data[field2].copy() - data[field1].copy()
+    zeta[:, 0][data[field2]>0] = data[field2][data[field2]>0].copy()
+    zeta[:, 1][data[field2]<0] = data[field2][data[field2]<0].copy()
 
     if reuse_intermediate and os.path.exists(tmp_file):
         # load neighborhoods, normals, tangents
@@ -158,24 +156,24 @@ def process(args):
             os.remove(tmp_file)
     if not reuse_intermediate or not os.path.exists(tmp_file):
         # compute neighborhoods, normals, tangents
-        neighbors, normals, tangents = pcls.build_neighborhoods(points, h, k)
+        neighbors, normals, tangents = ls.build_neighborhoods(points, h, k)
         np.savez_compressed(tmp_file,
                             neighbors=neighbors, normals=normals, tangents=tangents)
 
 
     # build MLS approximations
-    solver = pcls.Solver(h, zeta, points, neighbors, tangents,
-                         active_contour_model)
+    solver = ls.Solver(h, zeta, points, neighbors, tangents,
+                       active_contour_model)
 
     for i in range(num_smooth):
-        solver.zeta = pcls.smooth(solver.zeta, slice(None), solver.neighbors, solver.diff.weights)
+        solver.zeta = ls.smooth(solver.zeta, slice(None), solver.neighbors, solver.diff.weights)
 
     # normalize field to [0, 1] & cut off the long tail
     solver.zeta = np.abs(solver.zeta)
     if np.sum(np.isnan(solver.zeta)) > 0:
         solver.zeta[np.isnan(solver.zeta)] = 0
-    pcls.clip(solver.zeta, 0, np.percentile(solver.zeta, cue_clip_pc))
-    pcls.normalize(solver.zeta, 1)
+    ls.clip(solver.zeta, 100 - np.percentile(solver.zeta, cue_clip_pc), np.percentile(solver.zeta, cue_clip_pc))
+    ls.normalize(solver.zeta, 1)
 
 
     if init_method == 'voxel':
@@ -183,7 +181,7 @@ def process(args):
     if init_method == 'cue':
         solver.initialize_from_zeta(init_pc)
 
-    solver.phi[:] = pcls.smooth(
+    solver.phi[:] = ls.smooth(
             solver.phi, slice(None), solver.neighbors, solver.diff.weights
         )
 
