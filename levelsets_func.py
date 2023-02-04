@@ -98,9 +98,10 @@ def wendland(x, h):
 
 
 def normalize(array, s=1):
-    array -= array.min()
-    array /= array.max()
-    array *= s
+    if np.any(array != 0):
+        array -= array.min()
+        array /= array.max()
+        array *= s
 
 
 def clip(array, a, b):
