@@ -47,7 +47,7 @@ def create_las(points, fields):
 in_file = '../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1.las'
 fields = [f'change_{i}' for i in range(0, 126)]
 # fields = ['zeros','change_125']
-t = 50  # use epoch `n` and `n+t`
+t = 25  # use epoch `n` and `n+t`
 
 # maximal number of point holding "nan" values
 max_nan = 60000
@@ -57,8 +57,9 @@ new_file = in_file.split('.las')[0]  + '_rate' + str(t) + '.las'
 print(f"reading file '{in_file}'")
 data = ls.read_las(in_file, fields)
 rates = dict()
-
+i=0
 for epoch in zip(fields[:-t], fields[t:]):
+
     rate = compute_rate(data, epoch)
     rate /= t  # change rate
     print(np.sum(np.isnan(rate)))
@@ -68,8 +69,6 @@ for epoch in zip(fields[:-t], fields[t:]):
     field_name = 'r' + epoch[0].split('_')[1] #+ '_' + epoch[1].split('_')[1]
     new_field = {field_name: rate}
     rates.update(new_field)
-
-
 
 las = create_las(data["xyz"], rates)
 las.write(new_file)

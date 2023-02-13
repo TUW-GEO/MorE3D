@@ -11,6 +11,7 @@ Main to run the Point-based level-set for the extraction of 3D entities
 
 # Dependencies:
     - sklearn
+    - natsort
 
 When using this code please cite:
 
@@ -32,7 +33,8 @@ import levelsets_func as pcls
 import os
 from argparse import Namespace
 from multiprocessing import Pool
-
+import tqdm
+from natsort import natsorted
 # --- config / parameters ---
 pcls.verbose = False
 pcls.checks = True
@@ -46,17 +48,35 @@ pcls.checks = True
 #  in_file = './datasets/schneeferner_m3c2_sel_days_aoi2_sub025.las'   
 #  field = 'm3c2_180422_120031'   
 # in_file = './datasets/beach/change_timeseries_tint24_nepochs123.laz'
-in_file = '../rates/change_timeseries_tint1_nepochs129_subsampled1_rate25.las'
-#  in_file = '../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1nonan.las' 
-#  fields = [f'change_{i}' for i in range(0, 123)] 
-#  fields = ['change_125'] 
+# in_file = '../rates/change_timeseries_tint1_nepochs129_subsampled1_rate25.las'
+rates ={
+# {'rate1':natsorted( ['r19', 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29', 'r30', 'r42', 'r43',
+#                       'r44', 'r45', 'r46', 'r47', 'r48', 'r49', 'r50', 'r51', 'r52', 'r53', 'r54', 'r66', 'r67',
+#                       'r68', 'r69', 'r70', 'r71', 'r72', 'r73', 'r74', 'r75', 'r76', 'r77', 'r78', 'r90', 'r91',
+#                       'r92', 'r93', 'r94','r95', 'r96', 'r97','r98','r99','r100','r101',  'r102', 'r113'  , 'r114',
+#                       'r115', 'r116', 'r117', 'r118', 'r119', 'r120', 'r121', 'r122', 'r123', 'r124'])
+# , 'rate5':natsorted(['r69', 'r26', 'r96', 'r117', 'r45', 'r67', 'r91', 'r42', 'r66', 'r113', 'r115', 'r21', 'r20', 'r118',
+#               'r49', 'r119', 'r116', 'r74', 'r98', 'r95', 'r19', 'r94', 'r24', 'r44', 'r68', 'r114', 'r48', 'r90',
+#               'r71', 'r70', 'r46', 'r93', 'r23', 'r22', 'r97', 'r72', 'r50', 'r92', 'r73', 'r120', 'r25', 'r43', 'r47']), # rate5
+ 'rate10':natsorted(['r19', 'r20', 'r21', 'r42', 'r43', 'r44', 'r45', 'r66', 'r67', 'r68', 'r69', 'r90', 'r91', 'r92',
+               'r93', 'r103', 'r113', 'r114', 'r115'])
+# , 'rate25': natsorted(['r93', 'r53', 'r66', 'r96', 'r26', 'r92', 'r100', 'r28', 'r99', 'r69', 'r74', 'r76', 'r22', 'r71',
+#                 'r47', 'r78', 'r44', 'r42', 'r51', 'r25', 'r70', 'r45', 'r27', 'r98', 'r20', 'r24', 'r29', 'r23',
+#                 'r46', 'r73', 'r43', 'r49', 'r48', 'r91', 'r52', 'r54', 'r94', 'r19', 'r21', 'r30', 'r90', 'r67',
+#                 'r50', 'r75', 'r68', 'r77', 'r72', 'r97', 'r95']) # rate25,
+# ,'rate50':natsorted(['r19', 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29', 'r42', 'r43',
+#                       'r44', 'r45', 'r46', 'r47', 'r48', 'r49', 'r50', 'r51', 'r52', 'r53',  'r66', 'r67',
+#                       'r68', 'r69', 'r70', 'r71', 'r72', 'r73', 'r74', 'r75'])
+}
+# in_files = ['../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1.las'
+base_file = '../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1'
+# fields = [f'change_{i}' for i in range(19, 101)]
+# fields = ['change_125']
 
-#  fields = sorted(['r69', 'r26', 'r96', 'r117', 'r45', 'r67', 'r91', 'r42', 'r66', 'r113', 'r115', 'r21', 'r20', 'r118', 'r49', 'r119', 'r116', 'r74', 'r98', 'r95', 'r19', 'r94', 'r24', 'r44', 'r68', 'r114', 'r48', 'r90', 'r71', 'r70', 'r46', 'r93', 'r23', 'r22', 'r97', 'r72', 'r50', 'r92', 'r73', 'r120', 'r25', 'r43', 'r47']) # rate5 
+#  fields =
 
-fields = sorted(['r93', 'r53', 'r66', 'r96', 'r26', 'r92', 'r100', 'r28', 'r99', 'r69', 'r74', 'r76', 'r22', 'r71', 'r47', 'r78', 'r44', 'r42', 'r51', 'r25', 'r70', 'r45', 'r27', 'r98', 'r20', 'r24', 'r29', 'r23', 'r46', 'r73', 'r43', 'r49', 'r48', 'r91', 'r52', 'r54', 'r94', 'r19', 'r21', 'r30', 'r90', 'r67', 'r50', 'r75', 'r68', 'r77', 'r72', 'r97', 'r95']) # rate25 
 
-#  fields = ['r46'] 
-
+# fields = sorted(['change_' + name.split('r')[1] for name in fields])
 t = 0  # use epoch `n` and `n+t`, 0 for no differencing
 
 # re-use intermediate calculations (neighbors, normals, tangents)
@@ -100,8 +120,8 @@ k = 7
 tolerance = 5e-5
 
 # field to use as cue
-base_dir = os.path.join(os.path.dirname(in_file), 
-                        os.path.splitext(os.path.basename(in_file))[0])
+base_dir = os.path.join(os.path.dirname(base_file),
+                        os.path.splitext(os.path.basename(base_file))[0])
 if not os.path.exists(base_dir):
     os.makedirs(base_dir)
 
@@ -124,10 +144,10 @@ extraction_threshold = k//2
 # recenter cues by substracting cue median
 center_data = False
 
+accuracy = 0.36 # values smaller than accuracy should be considered zero (sqrt(2)*mz). Set to None if not to be used
 # --- run ---
 
-print(f"reading file '{in_file}'")
-data = pcls.read_las(in_file, fields)
+
 tmp_file = os.path.join(base_dir, 'tmp.npz')
 
 v_ = vars()
@@ -141,8 +161,9 @@ def process(args):
         vars()[key] = parameters[key]
 
     print(f"processing '{field1}'/'{field2}' | restriction: {restrict_domain}")
-
-    out_dir = os.path.join(base_dir, f"{field1}_{field2}")
+    # out_dir = os.path.join(base_dir, f"{t}")
+    out_dir = os.path.join(base_dir, data_name)
+    # out_dir = os.path.join(base_dir, f"{field1}_{field2}")
     if restrict_domain is not None:
         out_dir += f"_{restrict_domain}"
 
@@ -158,6 +179,10 @@ def process(args):
         zeta[:, 1] = data[field2].copy() - data[field1].copy()
 
     zeta[np.isnan(zeta)] = 0
+
+    if accuracy is not None:
+        zeta[:,0][np.abs(zeta[:, 0]) < accuracy] = 0
+        zeta[:, 1][np.abs(zeta[:, 1]) < accuracy] = 0
 
     if center_data:
         zeta[:, 0] -= np.median(zeta[:, 0])
@@ -218,31 +243,43 @@ def process(args):
     solver.save(os.path.join(out_dir, f'{step:04d}'), data['origin'])
 
     converged = False
-    for i in range(N):
+    for i in tqdm.tqdm(range(N), desc='solve', total=N):
         #  print('cycle', i+1, 'step', step) 
         tol = 0 if i == 0 else tolerance
         converged = solver.run(M, stepsize=stepsize, nu=nu, mu=mu, tolerance=tol,
                 lambda1=lambda1, lambda2=lambda2, epsilon=epsilon, cap=True)
         step += M
-        solver.save(os.path.join(out_dir, f'{step:04d}'), data['origin'], 
-                extract=True, extraction_threshold=extraction_threshold) 
+
         if converged:
             #  print('convergence!') 
             break
-
+    if field2 is None:
+        solver.save(os.path.join(out_dir, f'{field1}'), data['origin'],
+                    extract=True, extraction_threshold=extraction_threshold)
+    else:
+        solver.save(os.path.join(out_dir, f'{field1}_{field2.split("_")[1]}'), data['origin'],
+                extract=True, extraction_threshold=extraction_threshold)
     # ---
 
-
 pool = Pool()
+for f in rates:
+    print(f)
+    fields = rates[f]
+    data_name = f
+    # read file
+    in_file = base_file + '_' + f + '.las'
+    print(f"reading file '{in_file}'")
+    data = pcls.read_las(in_file, fields)
 
-if t > 0:
-    for _ in zip(fields[:-t], fields[t:], [v]*len(fields)):
-        for restrict_domain in ['positive', 'negative']:
-            process(_)
-else:
-    for _ in zip(fields, [None]*len(fields), [v]*len(fields)):
-        for restrict_domain in ['positive', 'negative']:
-            process(_)
+    zip_len = len(list(zip(fields[:-t], fields[t:], [v]*len(fields)))) # for progress bar
+    if t > 0:
+        for _ in tqdm.tqdm(zip(fields[:-t], fields[t:], [v]*len(fields)), desc='run ls', total=zip_len ):
+            for restrict_domain in ['positive', 'negative']:
+                process(_)
+    else:
+        for _ in zip(fields, [None]*len(fields), [v]*len(fields)):
+            for restrict_domain in ['positive', 'negative']:
+                process(_)
 
 
 #  pool.map(process, zip(fields, [v]*len(fields))) 
