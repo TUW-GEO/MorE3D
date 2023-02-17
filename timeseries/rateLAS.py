@@ -1,7 +1,6 @@
 """
 Create a new las file with the rates as an attribute
 """
-
 import laspy
 import os
 import levelsets_func as ls
@@ -44,7 +43,7 @@ def create_las(points, fields):
 
 # ------------- run -----------------
 
-in_file = '../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1.las'
+in_file = '../../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1.las'
 fields = [f'change_{i}' for i in range(0, 126)]
 # fields = ['zeros','change_125']
 t = 25  # use epoch `n` and `n+t`
