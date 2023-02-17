@@ -39,12 +39,7 @@ except ImportError:
 try:
     import laspy
 except ImportError:
-    print('laspy module not found (cannot load .las files)')
-
-verbose = False
-checks = False
-
-
+    verbose = False
 def read_ply(filename):
     """read input data from ply file"""
     _print(f"loading data fom {filename}")
@@ -67,7 +62,6 @@ def read_las(filename, attributes=None):
     data['xyz'] = np.column_stack((las.x, las.y, las.z))
     data['origin'] = data['xyz'].mean(axis=0)
     data['xyz'] -= data['origin']
-
     if attributes:
         for attribute in attributes:
             data[str(attribute)] = las.points.__getattr__(attribute)
@@ -104,9 +98,10 @@ def wendland(x, h):
 
 
 def normalize(array, s=1):
-    array -= array.min()
-    array /= array.max()
-    array *= s
+    if np.any(array != 0):
+        array -= array.min()
+        array /= array.max()
+        array *= s
 
 
 def clip(array, a, b):
