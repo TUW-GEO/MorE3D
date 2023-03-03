@@ -32,109 +32,67 @@ import levelsets_func as pcls
 import os
 from multiprocessing import Pool
 
-# --- config / parameters ---
-pcls.verbose = False
-pcls.checks = True
+def process(data, args, base_dir, restrict_domain=''):
+    field1, field2, field3, parameters = args
 
-# - multi features
-# - added feature: some kind of temporal change info
+    # re-use intermediate calculations (neighbors, normals, tangents)
+    reuse_intermediate = True
 
-#  in_file = './datasets/Zeelim_sub05m.las'  
-#  field = 'saliency'  
+    # active contours: Chan-Vese (`chan_vese`) or Local Mean and Variance ('lmv')
+    active_contour_model = 'chan_vese'
 
-#  in_file = './datasets/schneeferner_m3c2_sel_days_aoi2_sub025.las'   
-#  field = 'm3c2_180422_120031'   
-# in_file = './datasets/beach/change_timeseries_tint24_nepochs123.laz'
-in_file = '../rates/change_timeseries_tint1_nepochs129_subsampled1_rate25.las'
-#  in_file = '../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1nonan.las' 
-#  fields = [f'change_{i}' for i in range(0, 123)] 
-#  fields = ['change_125'] 
+    # each cycle runs a number of steps then stores a result
+    num_cycles = 12
+    num_steps = 50
 
-#  fields = sorted(['r69', 'r26', 'r96', 'r117', 'r45', 'r67', 'r91', 'r42', 'r66', 'r113', 'r115', 'r21', 'r20', 'r118', 'r49', 'r119', 'r116', 'r74', 'r98', 'r95', 'r19', 'r94', 'r24', 'r44', 'r68', 'r114', 'r48', 'r90', 'r71', 'r70', 'r46', 'r93', 'r23', 'r22', 'r97', 'r72', 'r50', 'r92', 'r73', 'r120', 'r25', 'r43', 'r47']) # rate5 
+    # number of smoothing passes for zeta
+    num_smooth = 1
 
-fields = sorted(['r93', 'r53', 'r66', 'r96', 'r26', 'r92', 'r100', 'r28', 'r99', 'r69', 'r74', 'r76', 'r22', 'r71', 'r47', 'r78', 'r44', 'r42', 'r51', 'r25', 'r70', 'r45', 'r27', 'r98', 'r20', 'r24', 'r29', 'r23', 'r46', 'r73', 'r43', 'r49', 'r48', 'r91', 'r52', 'r54', 'r94', 'r19', 'r21', 'r30', 'r90', 'r67', 'r50', 'r75', 'r68', 'r77', 'r72', 'r97', 'r95']) # rate25 
+    # explicit euler stepsize
+    stepsize = 1000
 
-#  fields = ['r46'] 
+    # controls regularization
+    nu = 0.0001
 
-t = 0  # use epoch `n` and `n+t`, 0 for no differencing
+    # controls curvature
+    mu = 0.0025
 
-# re-use intermediate calculations (neighbors, normals, tangents)
-reuse_intermediate = True
+    # controls zeta-in term
+    lambda1 = 1.0
 
-# active contours: Chan-Vese (`chan_vese`) or Local Mean and Variance ('lmv')
-active_contour_model = 'chan_vese'
+    # controls zeta-out term
+    lambda2 = 1.0
 
-# each cycle runs a number of steps then stores a result
-num_cycles = 12
-num_steps = 50
+    # heaviside/delta approximation "width", is scaled with h
+    epsilon = 1.0
 
-# number of smoothing passes for zeta
-num_smooth = 1
+    # approximate neighborhood radius
+    h = 2.5  # (all k neighbours should be within)
 
-# explicit euler stepsize
-stepsize = 1000
+    # number of kNN neighbors
+    k = 7
 
-# controls regularization
-nu = 0.0001
+    # termination tolerance
+    tolerance = 5e-5
 
-# controls curvature
-mu = 0.0025
+    # robust cues, clip at X%
+    cue_clip_pc = 99.9
 
-# controls zeta-in term
-lambda1 = 1.0
+    # initialization voxel size
+    vox_size = 10
 
-# controls zeta-out term
-lambda2 = 1.0
+    # initialization cue percentage
+    init_pc = 50
 
-# heaviside/delta approximation "width", is scaled with h
-epsilon = 1.0
+    # initialization method (voxel/cue)
+    init_method = 'voxel'
 
-# approximate neighborhood radius
-h = 2.5  # (all k neighbours should be within)
+    # neighbor threshold for points to be extracted
+    # (must have >= salient neighbors to be extracted)
+    extraction_threshold = k // 2
 
-# number of kNN neighbors
-k = 7
-
-# termination tolerance
-tolerance = 5e-5
-
-# field to use as cue
-base_dir = os.path.join(os.path.dirname(in_file), 
-                        os.path.splitext(os.path.basename(in_file))[0])
-if not os.path.exists(base_dir):
-    os.makedirs(base_dir)
-
-# robust cues, clip at X%
-cue_clip_pc = 99.9
-
-# initialization voxel size
-vox_size = 10
-
-# initialization cue percentage
-init_pc = 50
-
-# initialization method (voxel/cue)
-init_method = 'voxel'
-
-# neighbor threshold for points to be extracted
-# (must have >= salient neighbors to be extracted)
-extraction_threshold = k//2
-
-# recenter cues by substracting cue median
-center_data = False
-
-# --- run ---
-
-print(f"reading file '{in_file}'")
-data = pcls.read_las(in_file, fields)
-tmp_file = os.path.join(base_dir, 'tmp.npz')
-
-v_ = vars()
-v = {key: v_[key] for key in v_.keys() if 
-        key[0] != '_' and isinstance(v_[key], (int, bool, str, float))}
-
-def process(args):
-    field1, field2, parameters = args
+    # recenter cues by substracting cue median
+    center_data = False
 
     for key in parameters.keys():
         vars()[key] = parameters[key]
@@ -164,10 +122,11 @@ def process(args):
     if restrict_domain == 'positive':
         zeta[:, 0][zeta[:, 0] < 0] = 0
         zeta[:, 1][zeta[:, 1] < 0] = 0
-    if restrict_domain == 'negative':
+    elif restrict_domain == 'negative':
         zeta[:, 0][zeta[:, 0] > 0] = 0
         zeta[:, 1][zeta[:, 1] > 0] = 0
 
+    tmp_file = os.path.join(base_dir, 'tmp.npz')
     if reuse_intermediate and os.path.exists(tmp_file):
         # load neighborhoods, normals, tangents
         #  print('loading previous neighbors/normals/tangents') 
@@ -231,18 +190,83 @@ def process(args):
 
     # ---
 
+if __name__ == '__main__':
 
-pool = Pool()
+    # --- config / parameters ---
+    pcls.verbose = False
+    pcls.checks = False
 
-if t > 0:
-    for _ in zip(fields[:-t], fields[t:], [v]*len(fields)):
-        for restrict_domain in ['positive', 'negative']:
-            process(_)
-else:
-    for _ in zip(fields, [None]*len(fields), [v]*len(fields)):
-        for restrict_domain in ['positive', 'negative']:
-            process(_)
+    # - multi features
+    # - added feature: some kind of temporal change info
 
+    intvl = 24  # interval in epochs (temporal subsampling, set to 1 if all epochs should be used)
+    k1_full = 24 # cue 1: change in last k1 epochs
+    k2_full = 168 # cue 2: change in last k2 epochs
+    k1 = k1_full//intvl   # use epoch `n-k1` and `n-k2`
+    k2 = k2_full//intvl
 
-#  pool.map(process, zip(fields, [v]*len(fields))) 
+    # data
+    in_file = 'kijkduin_4dobc_full.zip' # py4dgeo object
 
+    # field to use as cue
+    base_dir = os.path.join(os.path.dirname(in_file),
+                            os.path.splitext(os.path.basename(in_file))[0]+f'_k{k1_full}_{k2_full}')
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir)
+
+    # --- run ---
+    data = pcls.read_py4dgeo(in_file)
+    fields = data['fields']
+
+    # we can reduce the data volume by the selected time interval
+    # TODO this only works for py4dgeo data structure, but having the time information is very useful
+    timedeltas_intvl = data['timedeltas'][::intvl]
+    timedeltas_samples = np.arange(len(data['timedeltas'])).astype(int)[::intvl]
+    for t in range(len(data['timedeltas'])):
+        if not t in timedeltas_samples:
+            del data[f'change_{t}']
+
+    v_ = vars()
+    v = {key: v_[key] for key in v_.keys() if
+         key[0] != '_' and isinstance(v_[key], (int, bool, str, float))}
+
+    # use multiprocessing to parallelize
+    import multiprocessing as mp
+    import time
+    import sys
+
+    numthreads = 10
+
+    gettrace = getattr(sys, 'gettrace', None)
+    if gettrace is None:
+        pass
+    elif gettrace():
+        print('Debugging mode detected, running only single thread mode')
+        numthreads = 1
+
+    procs = []
+    for _ in zip(fields[::intvl][k2::], fields[::intvl][k2 - k1:-k1], fields[::intvl][:-k2], [v] * (len(fields[::intvl]))):
+        for changedir in ['positive', 'negative']:
+            proc = mp.Process(target=process, args=(data, _, base_dir, changedir))
+            procs.append(proc)
+
+    last_started_idx = -1
+    running_ps = []
+    while True:
+        if len(running_ps) < numthreads:
+            last_started_idx += 1
+            if last_started_idx < len(procs):
+                procs[last_started_idx].start()
+                running_ps.append(last_started_idx)
+
+        for running_p in running_ps:
+            # see if there is a process (thread) that is terminated
+            if not procs[running_p].is_alive():
+                # close the terminated process
+                procs[running_p].close()
+                running_ps.remove(running_p)
+
+        time.sleep(1)
+
+        if last_started_idx >= len(procs) and len(running_ps) == 0:
+            break
