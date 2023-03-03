@@ -38,7 +38,7 @@ def read_ply(filename):
     try:
         from plyfile import PlyData, PlyElement
     except ImportError:
-
+        print('plyfile module not found (cannot load .ply files)')
 
     _print(f"loading data fom {filename}")
     data = {}
@@ -58,8 +58,7 @@ def read_las(filename, attributes=None):
     try:
         import laspy
     except ImportError:
-        print('plyfile module not found (cannot load .ply files)')
-
+        print('laspy module not found (cannot load .ply files)')
 
     las = laspy.read(filename, )
     data = {}
