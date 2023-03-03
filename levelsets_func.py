@@ -31,17 +31,14 @@ import numpy as np
 import scipy as sp
 from scipy.spatial import Delaunay
 from sklearn.neighbors import BallTree
-try:
-    from plyfile import PlyData, PlyElement
-except ImportError:
-    print('plyfile module not found (cannot load .ply files)')
 
-try:
-    import laspy
-except ImportError:
-    verbose = False
 def read_ply(filename):
     """read input data from ply file"""
+    try:
+        from plyfile import PlyData, PlyElement
+    except ImportError:
+        print('plyfile module not found (cannot load .ply files)')
+
     _print(f"loading data fom {filename}")
     data = {}
     plydata = PlyData.read(filename)
@@ -57,6 +54,11 @@ def read_ply(filename):
 
 
 def read_las(filename, attributes=None):
+    try:
+        import laspy
+    except ImportError:
+        verbose = False
+
     las = laspy.read(filename, )
     data = {}
     data['xyz'] = np.column_stack((las.x, las.y, las.z))
