@@ -4,7 +4,7 @@
 ===================================================================
 Example for running saliency using OPALS
 """
-
+import opals
 from opals import Import, Grid, Shade, Normals, Export
 from opals import View
 from opals import pyDM
@@ -15,7 +15,7 @@ from DM_saliency import DM_nonparam_curvature
 
 if __name__ == '__main__':
     # input
-    file = 'cave' # these data can be found on https://doi.org/10.48436/fh0am-at738
+    file = '/home/rarav/PycharmProjects/data/Gesher/gesher_wall4_RGB.las'
 
     lasFile_orig = file + '.las'
     odmFile = file + '.odm'
@@ -25,13 +25,13 @@ if __name__ == '__main__':
     exp.oFormat = 'LAS_1.4_curvature_saliency.xml'
 
     # preliminary parameters
-    normals_rad = .3
+    normals_rad = .1
 
-    curvature_rad = .3
+    curvature_rad = .1
     curvature_roughness = 0.0001
 
     # saliency parameters
-    s_rho = .5
+    s_rho = .025
     s_sigma = s_rho / 3
     s_rad = s_rho * 2
     noise_curvature = 0.0001
