@@ -24,3 +24,7 @@ venv.bak/
 profile_default/
 ipython_config.py
 
+# OPALS
+opalsLog.xml
+opalsError.xml
+
