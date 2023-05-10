@@ -67,16 +67,21 @@ pccoords = pcdata['xyz'] + pcdata['origin']
 cmap_gradient = cm.cm.broc
 
 for i in range(0,len(ilist[:n]),2): # we use every second, because there is always pos and neg
-    # plt.figure(figsize=(9, 9))
-    fig, axs = plt.subplots(1, 3, figsize=(12, 4))
 
     # get the change data
     change_i = int(ilist[i].split('_')[1])
+
+    # continue if the plot already exists
+    png_file = basename + f'{anim_dir}/{change_i:03d}b.png'
+    if os.path.exists(png_file):
+        continue
+
     changedata_k = pcdata[f'change_{change_i}']
     changedata_grad1 = pcdata[f'change_{change_i}'] - pcdata[f'change_{change_i - k1_full}']  # pcdata[f'change_{i-1}']
     changedata_grad2 = pcdata[f'change_{change_i}'] - pcdata[f'change_{change_i - k2_full}']  # pcdata[f'change_{i-k}']
 
     # plot the changes
+    fig, axs = plt.subplots(1, 3, figsize=(12, 4))
     ax1, ax2, ax3 = axs
 
     sc = ax1.scatter(pccoords[:, 0], pccoords[:, 1], c=changedata_k, cmap='RdYlBu_r', s=1, rasterized=True, vmin=-.5, vmax=.5)
@@ -122,7 +127,7 @@ for i in range(0,len(ilist[:n]),2): # we use every second, because there is alwa
     plt.colorbar(sc, label='Height change [m]',ax=ax1)
     plt.colorbar(sg, label='Change gradient [m]',ax=ax3)
 
-    plt.savefig(basename + f'{anim_dir}/{change_i:03d}b.png', dpi=196)
+    plt.savefig(png_file, dpi=196)
     plt.close()
 
 
