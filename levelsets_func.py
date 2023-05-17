@@ -107,7 +107,7 @@ def read_py4dgeo(in_file, data_pkl=None):
         data['origin'] = np.round(np.median(data['xyz'], axis=0), 0)
         data['xyz'] = data['xyz'] - data['origin']  # similar to read_las func, we also apply this offset 'globally' for the script
         data['timedeltas'] = np.array([int(dt.total_seconds()) for dt in data_obj.timedeltas])  # in seconds
-        data['time_reference'] = data_obj.reference_epoch
+        data['time_reference'] = data_obj.reference_epoch.timestamp
         distances = data_obj.distances_for_compute
         fields = [f'change_{i}' for i in range(0, len(distances[0]))]
         data['fields'] = fields
