@@ -134,7 +134,6 @@ i=0
 while i < len(gdf):
     seed_curr = gdf.iloc[i]
 
-    # TODO: remove for final analysis
     # select the polygons that contain the point
     if (not point_sel is None) & (not seed_curr['polygon'].contains(point_sel)):
         i += 1
