@@ -85,7 +85,7 @@ for i in range(0,len(ilist[:n]),2): # we use every second, because there is alwa
     ax1, ax2, ax3 = axs
 
     sc = ax1.scatter(pccoords[:, 0], pccoords[:, 1], c=changedata_k, cmap='RdYlBu_r', s=1, rasterized=True, vmin=-.5, vmax=.5)
-    ax1.set_title(f'Changes day d={change_i}')
+    ax1.set_title(f'Changes hour {change_i}')
 
     sg = ax2.scatter(pccoords[:, 0], pccoords[:, 1], c=changedata_grad1, cmap=cmap_gradient, s=1, rasterized=True, vmin=-.2, vmax=.2)
     ax2.set_title(f'Changes gradient t-{k1_full}')
