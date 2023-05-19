@@ -14,7 +14,8 @@ import levelsets_func as pcls
 
 # enable interactive plotting in debug mode
 import matplotlib as mpl
-mpl.use('TkAgg')
+#mpl.use('TkAgg')
+mpl.use('Agg')
 
 # set parameters same as in run_levelsets.py
 intvl = 24  # interval in epochs (temporal subsampling, set to 1 if all epochs should be used)
@@ -117,108 +118,140 @@ else:
 gdf['status'] = 'candidate' # will be updated to 'seed' or 'neigh' later
 
 # loop over all polygons and find the temporal connections (space-time neighbors)
-iou_thr = 0.5
+
+iou_thr = 0.5 # intersection over union threshold for the polygons
+area_thr = 25.0 # area threshold for the polygons
 
 # for testing, we select only polygons that cover a certain location
 # using a shapely point object
 from shapely.geometry import Point
-point_sel = Point(-250.0, 0.0) # set to None to analyze all the entire scene
+# can be one point or GDF; set to None to analyze all the entire scene
+locs_sel = None #gpd.GeoDataFrame({'points':[Point(-250.0, 0.0), Point(-200.0, 0.0)]}, geometry='points')
 
-# select the polygons that contain the point
-gdf = gdf[gdf['polygon'].contains(point_sel)]
+# select the polygons that contain the selected points point
+if not locs_sel is None:
+    gdf = gdf.sjoin(locs_sel, predicate='contains', how='inner')
+    # rename column 'index_right' to 'locs_sel'
+    gdf = gdf.rename(columns={'index_right':'locs_sel'})
 
-# reset index of gdf for iterating
-gdf = gdf.reset_index(drop=True)
+gdf_pkl = f'{basename}/gdf.pkl'
 
-i=0
-while i < len(gdf):
-    seed_curr = gdf.iloc[i]
+# if the gdf_pkl file exists, load it
+if os.path.isfile(gdf_pkl):
+    gdf = gpd.read_pickle(gdf_pkl)
 
-    # select the polygons that contain the point
-    if (not point_sel is None) & (not seed_curr['polygon'].contains(point_sel)):
-        i += 1
-        continue
+# if the gdf_pkl file does not exist, create it
+else:
 
-    # if the polygon is already connected to another polygon, skip it
-    if seed_curr['status'] in ['seed', 'neigh']:
-        i += 1
-        continue
+    # ensure that all polygons are valid
+    from shapely.validation import make_valid
+    gdf['polygon'] = [make_valid(p) for p in gdf['polygon']]
 
-    print('[NEXT SEED CANDIDATE]')
-    print(seed_curr)
+    # reset index of gdf for iterating
+    gdf = gdf.reset_index(drop=True)
+    i=0
+    oid = 0
+    num_poly = len(gdf)
+    while i < len(gdf):
 
-    # update the status of the seed polygon
-    gdf.loc[i, 'status'] = 'seed'
+        # output status to console to track progress
+        print(f'Processing polygon {i+1}/{len(gdf)} ({int(round(((float(i)+1)/num_poly*100), 0))}%)')
 
-    # find all polygons that are within the temporal window (but not in the same epoch)
-    gdf_neigh = gdf[(gdf['timestamp'] < seed_curr['timestamp'] - pd.Timedelta(seconds=k1_full*3600))]
+        seed_curr = gdf.iloc[i]
 
-    # remove polygons that are already connected to another polygon (neigh_t is not NaN)
-    gdf_neigh = gdf_neigh[gdf_neigh['neigh_t'].isna()]
+        # continue if polygon area is too small
+        if seed_curr['polygon'].area < 50:
+            i += 1
+            continue
 
-    # if there is no neighbor, skip the polygon
-    if len(gdf_neigh) > 0:
+        # if the polygon is already connected to another polygon, skip it
+        if seed_curr['status'] in ['seed', 'neigh']:
+            i += 1
+            continue
 
-        # find all polygons that have spatial overlap with the current polygon and derive the intersection and union
-        gdf_neigh['intersects'] = gdf_neigh['polygon'].apply(lambda x: seed_curr['polygon'].intersection(x).area)
-        gdf_neigh['unions'] = gdf_neigh['polygon'].apply(lambda x: seed_curr['polygon'].union(x).area)
+        # update the status of the seed polygon
+        gdf.loc[i, 'status'] = 'seed'
+        # assign an object id to the seed
+        gdf.loc[i, 'oid'] = oid
 
-        # calculate the intersection over union (IoU) for all polygons
-        gdf_neigh['ious'] = gdf_neigh['intersects'] / gdf_neigh['unions']
+        # find all polygons that are within the temporal window (but not in the same epoch)
+        gdf_neigh = gdf[(gdf['timestamp'] < seed_curr['timestamp'] - pd.Timedelta(seconds=k1_full*3600))]
 
-        # select the polygon with the highest IoU per epoch, but only if not already connected to another polygon and if the IoU is above the threshold
-        gdf_neigh = gdf_neigh[(gdf_neigh['neigh_t'].isna()) & (gdf_neigh['ious'] > iou_thr)]
+        # remove polygons that are already connected to another polygon (neigh_t is not NaN)
+        gdf_neigh = gdf_neigh[gdf_neigh['neigh_t'].isna()]
 
-        # if there is no neighbor left, continue with the next seed polygon
+        # if there is no neighbor, skip the polygon
         if len(gdf_neigh) > 0:
-            # now we found a temporal sequence of polygons connected to one seed polygon
-            # assign the polygon id of the later polygon (t+1) as neigh_t for each polygon
-            gdf_neigh['neigh_t'] = gdf_neigh['id'].shift(1)
 
-            # the first polygon in the sequence has no neigh_t, so we set it to the id of the seed polygon
-            gdf_neigh.iloc[0, gdf_neigh.columns.get_loc('neigh_t')] = seed_curr['id']
+            # find all polygons that have spatial overlap with the current polygon and derive the intersection and union
+            gdf_neigh['intersects'] = gdf_neigh['polygon'].apply(lambda x: seed_curr['polygon'].intersection(x).area)
+            gdf_neigh['unions'] = gdf_neigh['polygon'].apply(lambda x: seed_curr['polygon'].union(x).area)
 
-            # update the neigh_t column in the geodataframe
-            gdf.loc[gdf_neigh.index, 'neigh_t'] = gdf_neigh['neigh_t']
-            gdf.loc[gdf_neigh.index, 'status'] = 'neigh'
+            # calculate the intersection over union (IoU) for all polygons
+            gdf_neigh['ious'] = gdf_neigh['intersects'] / gdf_neigh['unions']
 
-    if 1:
-        # visualize the sequence
-        fig, ax = plt.subplots(figsize=(10,10))
+            # select the polygon with the highest IoU per epoch, but only if not already connected to another polygon and if the IoU is above the threshold
+            gdf_neigh = gdf_neigh[(gdf_neigh['neigh_t'].isna()) & (gdf_neigh['ious'] > iou_thr)]
 
-        # get the change data for the current seed polygon
-        change_i = np.where(pcdata['timedeltas']==seed_curr['timedelta'].total_seconds())[0][0]
-        changedata_curr = pcdata[f'change_{change_i}']
-        ax.scatter(pccoords[:,0], pccoords[:,1], c=changedata_curr, cmap='RdYlBu_r', s=1, rasterized=True, vmin=-.5, vmax=.5)
+            # if there is no neighbor left, continue with the next seed polygon
+            if len(gdf_neigh) > 0:
+                # now we found a temporal sequence of polygons connected to one seed polygon
+                # assign the polygon id of the later polygon (t+1) as neigh_t for each polygon
+                gdf_neigh['neigh_t'] = gdf_neigh['id'].shift(1)
 
-        # plot the seed polygon
-        gdf.loc[[i], 'polygon'].plot(ax=ax, edgecolor='blue', facecolor='none', lw=2)
+                # the first polygon in the sequence has no neigh_t, so we set it to the id of the seed polygon
+                gdf_neigh.iloc[0, gdf_neigh.columns.get_loc('neigh_t')] = seed_curr['id']
 
-        # plot the selected point location
-        # ax.scatter(point_sel.x, point_sel.y, c='red', s=5, label='point location for spatial selection')
+                # update the neigh_t column in the geodataframe
+                gdf.loc[gdf_neigh.index, 'neigh_t'] = gdf_neigh['neigh_t']
+                gdf.loc[gdf_neigh.index, 'status'] = 'neigh'
 
-        plt.suptitle(f'Polygon {seed_curr["id"]} (Start time: {seed_curr["timestamp"]})')
+                # update the object id of the neigh_t polygons
+                gdf.loc[gdf_neigh.index, 'oid'] = oid
 
-        # plot the temporal sequence of polygons
-        if len(gdf_neigh) > 0:
-            gdf_neigh_ts = np.nan
-            for j, jr in gdf_neigh.iterrows():
-                # ax.plot(gdf_neigh.iloc[j]['polygon'].exterior.xy, c='b', lw=2)
-                gdf_neigh.loc[[j], 'polygon'].plot(ax=ax, edgecolor='black', facecolor='none', lw=0.5)
-                gdf_neigh_ts = jr['timestamp']
-            plt.title(f'(End time: {gdf_neigh_ts})')
+        if 0:
+            # visualize the sequence
+            fig, ax = plt.subplots(figsize=(10,10))
 
-        # set equal aspect ratio
-        ax.set_aspect('equal')
+            # get the change data for the current seed polygon
+            change_i = np.where(pcdata['timedeltas']==seed_curr['timedelta'].total_seconds())[0][0]
+            changedata_curr = pcdata[f'change_{change_i}']
+            ax.scatter(pccoords[:,0], pccoords[:,1], c=changedata_curr, cmap='RdYlBu_r', s=1, rasterized=True, vmin=-.5, vmax=.5)
 
-        # save the figure
-        fig.tight_layout()
-        plt_dir = f'{basename}/plots'
-        if not os.path.exists(plt_dir):
-            os.makedirs(plt_dir)
-        plt.savefig(f'{plt_dir}/epoch_{change_i}_seed_{seed_curr["id"]}.png', dpi=200)
-        plt.close()
+            # plot the seed polygon
+            gdf.loc[[i], 'polygon'].plot(ax=ax, edgecolor='blue', facecolor='none', lw=2)
 
-    print('[DONE WITH SEED CANDIDATE, CONTINUE]')
-    gdf_neigh = None
-    i+=1
+            # plot the selected point location
+            # ax.scatter(locs_sel.x, locs_sel.y, c='red', s=5, label='point location for spatial selection')
+
+            # plot the temporal sequence of polygons
+            if len(gdf_neigh) > 0:
+                gdf_neigh_ts = np.nan
+                for j, jr in gdf_neigh.iterrows():
+                    # ax.plot(gdf_neigh.iloc[j]['polygon'].exterior.xy, c='b', lw=2)
+                    gdf_neigh.loc[[j], 'polygon'].plot(ax=ax, edgecolor='black', alpha=0.3, facecolor='none', lw=0.5)
+                    gdf_neigh_ts = jr['timestamp']
+                plt.suptitle(f'Polygon {seed_curr["id"]} (duration: {int((seed_curr["timestamp"] - gdf_neigh_ts).total_seconds()/3600)} h)')
+                plt.title(f'{gdf_neigh_ts} to {seed_curr["timestamp"]}')
+            else:
+                plt.suptitle(f'Polygon {seed_curr["id"]}')
+                plt.title(f'{seed_curr["timestamp"]}')
+
+            # set equal aspect ratio
+            ax.set_aspect('equal')
+
+            # save the figure
+            fig.tight_layout()
+            plt_dir = f'{basename}/plots'
+            if not os.path.exists(plt_dir):
+                os.makedirs(plt_dir)
+            plt.savefig(f'{plt_dir}/epoch_{change_i}_seed_{seed_curr["id"]}.png', dpi=200)
+            plt.close()
+
+        gdf_neigh = None
+        i+=1
+        oid+=1
+
+    # save the geodataframe
+    gdf.to_pickle(gdf_pkl)
+
