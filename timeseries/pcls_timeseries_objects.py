@@ -55,7 +55,7 @@ for t in range(len(pcdata['timedeltas'])):
 pccoords = pcdata['xyz'] + pcdata['origin']
 reference_epoch = pcdata['time_reference']
 
-gdf_file = basename + '/gdf.pkl'
+gdf_file = basename + '/gdf_seeds.pkl'
 if os.path.isfile(gdf_file):
     gdf = pd.read_pickle(gdf_file)
 
@@ -111,6 +111,10 @@ else:
     # ensure that we are still working with a geodataframe
     gdf = gpd.GeoDataFrame(gdf, geometry='polygon')
 
+    # ensure that all polygons are valid
+    from shapely.validation import make_valid
+    gdf['polygon'] = [make_valid(p) for p in gdf['polygon']]
+
     # save the geodataframe to file
     gdf.to_pickle(gdf_file)
 
@@ -134,18 +138,14 @@ if not locs_sel is None:
     # rename column 'index_right' to 'locs_sel'
     gdf = gdf.rename(columns={'index_right':'locs_sel'})
 
-gdf_pkl = f'{basename}/gdf.pkl'
+gdf_pkl = f'{basename}/gdf_objects.pkl'
 
 # if the gdf_pkl file exists, load it
 if os.path.isfile(gdf_pkl):
-    gdf = gpd.read_pickle(gdf_pkl)
+    gdf = pd.read_pickle(gdf_pkl)
 
 # if the gdf_pkl file does not exist, create it
 else:
-
-    # ensure that all polygons are valid
-    from shapely.validation import make_valid
-    gdf['polygon'] = [make_valid(p) for p in gdf['polygon']]
 
     # reset index of gdf for iterating
     gdf = gdf.reset_index(drop=True)
@@ -209,7 +209,7 @@ else:
                 # update the object id of the neigh_t polygons
                 gdf.loc[gdf_neigh.index, 'oid'] = oid
 
-        if 0:
+        if 1:
             # visualize the sequence
             fig, ax = plt.subplots(figsize=(10,10))
 
@@ -255,3 +255,67 @@ else:
     # save the geodataframe
     gdf.to_pickle(gdf_pkl)
 
+# VISUALIZE THE POLYGON OBJECTS as animation
+if 1:
+
+    timedeltas = pd.to_timedelta(pcdata['timedeltas'], unit='s')
+
+    # create a column with shuffled numbers of oid for coloring (but the same oid_color for the same object)
+    col_max = 100
+    for oid in gdf['oid'].unique():
+        gdf.loc[gdf['oid']==oid, 'oid_color'] = np.random.randint(0, col_max)
+
+    # remove polygons that are not assigned to an object
+    gdf = gdf[gdf['oid'].notna()]
+
+    # create separate gdf for seeds
+    gdf_seeds = gdf[gdf['status']=='seed']
+
+    # add column with centroid coordinates (as tuple)
+    gdf_seeds['centroid_geom'] = gdf_seeds['polygon'].geometry.centroid
+    gdf_seeds['centroid'] = gdf_seeds['centroid_geom'].apply(lambda p: (p.x, p.y))
+
+    # iterate over all epochs
+    num_ci = len(timedeltas_samples)
+    num_objs = gdf['oid'].max()
+    for ci in range(num_ci):
+
+        change_i = timedeltas_samples[ci]
+
+        print(f'Plotting epoch {ci+1}/{num_ci}...')
+
+        # get the change data for the current seed polygon
+        changedata_curr = pcdata[f'change_{change_i}']
+
+        # create a figure
+        fig, ax = plt.subplots(figsize=(7,7))
+
+        # plot the point cloud
+        sc = ax.scatter(pccoords[:,0], pccoords[:,1], c=changedata_curr, cmap='RdYlBu_r', s=1, rasterized=True, vmin=-.5, vmax=.5)
+
+        # plot the polygons of the current epoch
+        gdf_ts = gdf[gdf['timestamp'] == timedeltas[change_i] + reference_epoch]
+
+        if len(gdf_ts) > 0:
+            # color the polygons according to their object id (oid)
+            gdf_ts.plot(ax=ax, column='oid_color', categorical=True, legend=False, lw=1.0, vmin=0, vmax=col_max, cmap='tab20')
+            gdf_ts.apply(lambda x: ax.annotate(text=int(x['oid']),
+                                            xy=gdf_seeds.loc[(gdf_seeds['oid']==x.oid),'centroid'].values[0],
+                                            ha='center', fontsize=8), axis=1)
+
+        # set equal aspect ratio
+        ax.set_aspect('equal')
+
+        # set the title
+        plt.title(f'{timedeltas[change_i] + reference_epoch}')
+
+        # add a colorbar
+        plt.colorbar(sc, ax=ax, label='Surface change [m]')
+
+        # save the figure
+        fig.tight_layout()
+        plt_dir = f'{basename}/plots_objects'
+        if not os.path.exists(plt_dir):
+            os.makedirs(plt_dir)
+        plt.savefig(f'{plt_dir}/epoch_{change_i}.png', dpi=200)
+        plt.close()
