@@ -45,12 +45,12 @@ pcls.checks = True
 #  in_file = './datasets/schneeferner_m3c2_sel_days_aoi2_sub025.las'   
 #  field = 'm3c2_180422_120031'   
 # in_file = './datasets/beach/change_timeseries_tint24_nepochs123.laz'
-in_file = '/home/rarav/PycharmProjects/data/Gesher/gesher_wall4_RGB.las'
+in_file = '/home/rarav/PycharmProjects/data/Aquaduct/AQU_051021_p1.las'
 #  in_file = '../data/snowCover/change_timeseries_tint1_nepochs129_subsampled1nonan.las'
 # fields = [f'r{i}' for i in range(19, 27)]
 #  fields = ['change_125'] 
 fields = None
-channels = sorted(['G', 'R']) # color
+channels = sorted(['i']) # color
 
 t = 0  # use epoch `n` and `n+t`, 0 for no differencing
 
@@ -72,7 +72,7 @@ num_steps = 50
 num_smooth = 1
 
 # explicit euler stepsize
-stepsize = .25
+stepsize = .005
 
 # controls regularization
 nu = 0.0001
@@ -90,7 +90,7 @@ lambda2 = 1.0
 epsilon = 1.0
 
 # approximate neighborhood radius
-h = 0.1  # (all k neighbours should be within)
+h = 0.02  # (all k neighbours should be within)
 
 # number of kNN neighbors
 k = 7
@@ -105,10 +105,10 @@ if not os.path.exists(base_dir):
     os.makedirs(base_dir)
 
 # robust cues, clip at X%
-cue_clip_pc = 100
+cue_clip_pc = 99.5
 
 # initialization voxel size
-vox_size = 0.5
+vox_size = 0.05
 
 # initialization cue percentage
 init_pc = 50
@@ -234,7 +234,7 @@ def process(args):
     N = num_cycles
     M = num_steps
 
-    # solver.save(os.path.join(out_dir, f'{step:04d}'), data['origin'])
+    solver.save(os.path.join(out_dir, f'{step:04d}'), data['origin'])
 
     converged = False
     for i in range(N):

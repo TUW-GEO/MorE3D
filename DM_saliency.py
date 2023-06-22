@@ -37,7 +37,7 @@ import datetime
 import numpy as np
 import sys
 
-class Curvature_Kernel(pyDM.PointKernelEx):
+class Curvature_Kernel(pyDM.KernelPointEx):
     """callback object computing an user-defined attribute '_K_nonparam'"""
     _roughness = None
     _alpha = None
@@ -75,6 +75,10 @@ class Curvature_Kernel(pyDM.PointKernelEx):
 
     def tileFilter(self):
         return None
+    def releaseLeaf(self):
+        """
+        """
+        return
 
     def leafChanged(self, leaf, *args, **kwargs):
         """callback notifies about a changed leaf"""
@@ -152,7 +156,7 @@ class Curvature_Kernel(pyDM.PointKernelEx):
         # this internally marks the current point leaf as changed (=needs to be written to disk)
         return True
 
-class Saliency_Kernel(pyDM.PointKernelEx):
+class Saliency_Kernel(pyDM.KernelPointEx):
     """callback object computing an user-defined attribute '_saliency'"""
     _alpha = None
     _sigma_curvature = None
@@ -207,6 +211,10 @@ class Saliency_Kernel(pyDM.PointKernelEx):
         # print("process tile with id = %d" % leaf.id())
         return
 
+    def releaseLeaf(self):
+        """
+        """
+        return
     # @jit(nopython=True)
     def process(self, pt, neighbours):
         r"""
@@ -247,6 +255,9 @@ class Saliency_Kernel(pyDM.PointKernelEx):
 
         dxyz = pt_xyz - n_xyz.T
         dist = np.sum(dxyz**2, axis=1)
+        pt_normal/=np.linalg.norm(pt_normal)
+        n_normal /= np.linalg.norm(n_normal, axis=0)
+
         dn = 1- pt_normal.dot(n_normal)
         dk = pt_curvature - n_curvature
 
@@ -291,10 +302,10 @@ class Saliency_Kernel(pyDM.PointKernelEx):
             #     print('hello')
         if np.isnan(dn):
             dn = 0
-            print('dn is nan')
+            print('dn is nan, set to 0')
         elif dn > 2:
             dn = 1
-            print('dn is larger than 2')
+            print('dn is larger than 2, set to 1')
         if chi2_curvature < chi2_table:
             # if most curvature differences are statistically zero
             dk = 0
@@ -570,3 +581,31 @@ def DM_saliency(inFile, curvature_weight=.5, **kwargs):
 
     diff = datetime.datetime.now() - start
     print("Done. Processing took %.2f [s]" % diff.total_seconds())
+
+def DM_saliency_stats(odm):
+    """
+    Returns saliency statistics (min, max, mean, std) from an odm (after saliency was computed)
+
+    :param odm: path to odm
+
+    :return: tuple (min, max, mean, std)
+    """
+    dm = pyDM.Datamanager.load(odm, True, False)
+    if not dm:
+        print("Unable to open ODM '" + odm + "'")
+        sys.exit(1)
+
+    #query attribute layout that is stored within the odm
+    stat = dm.getAddInfoStatistics()
+    dmLayout = stat.layout()
+    names = [dmLayout.name(i) for i in range(dmLayout.columns())]
+    if '_saliency' in names:
+        i = names.index('_saliency')
+        return (stat.min().get(i), stat.max().get(i), stat.mean(i), stat.sigma(i))
+    else:
+        print('no saliency values')
+        return 1
+
+
+
+
